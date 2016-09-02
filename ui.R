@@ -3,13 +3,10 @@ dashboardPage(
         title = "Fangraphs Visualization",
         titleWidth = 350
     ),
-    dashboardSidebar(useShinyjs(),
-        sidebarMenuOutput('menu')
-#         sidebarMenu(useShinyjs(),
-#             menuItem(text="Query Data", tabName = "query", icon = icon("database")),
-#             menuItem(text="Result Data", tabName = "data", icon = icon("table")),
-#             menuItem(text="Data Visualization", tabName = "graphics", icon = icon("area-chart"))
-#         )
+    dashboardSidebar(
+        sidebarMenu(id='tabs',
+            sidebarMenuOutput('menu')
+         )
     ),
     dashboardBody(theme = shinytheme('flatly'),
                   tabItems(

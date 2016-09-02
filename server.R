@@ -6,18 +6,17 @@ shinyServer( function(input, output, session) {
     #visualizations conditional on data existing
     output$menu <- renderMenu({
         if(!is.null(values$data)){
-            menu_list <- list(menuItem("Query Data", tabName = "query", icon = icon("database")),
+            sidebarMenu(id='tabs',menuItem("Query Data", tabName = "query", icon = icon("database"),selected = T),
                               menuItem("Result Data", tabName = "data", icon = icon("table")),
                               menuItem("Data Visualization", icon = icon("area-chart"),
                                        menuSubItem('Explore',tabName = "graphics", icon = icon('bar-chart')),
                                        menuSubItem('PCA & Clustering',tabName = 'pca_tab',icon = icon('line-chart'))))
         }else{
-            menu_list <- list(menuItem("Query Data", tabName = "query", icon = icon("database")),
+            sidebarMenu(id='tabs',menuItem("Query Data", tabName = "query", icon = icon("database"),selected = T),
                               menuItem("Result Data", tabName = "data", icon = icon("table")))
         }
-        sidebarMenu(.list = menu_list)
     })
-
+    isolate({updateTabItems(session, "tabs", "query")})
     #positions
     output$pos = renderUI({
         selectInput('pos','Position:', choices = switch(input$stat_type,
