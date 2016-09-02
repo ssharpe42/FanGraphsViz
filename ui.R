@@ -3,12 +3,13 @@ dashboardPage(
         title = "Fangraphs Visualization",
         titleWidth = 350
     ),
-    dashboardSidebar(
-        sidebarMenu(
-            menuItem("Query Data", tabName = "query", icon = icon("database")),
-            menuItem("Result Data", tabName = "data", icon = icon("table")),
-            menuItem("Data Visualization", tabName = "graphics", icon = icon("area-chart"))
-        )
+    dashboardSidebar(useShinyjs(),
+        sidebarMenuOutput('menu')
+#         sidebarMenu(useShinyjs(),
+#             menuItem(text="Query Data", tabName = "query", icon = icon("database")),
+#             menuItem(text="Result Data", tabName = "data", icon = icon("table")),
+#             menuItem(text="Data Visualization", tabName = "graphics", icon = icon("area-chart"))
+#         )
     ),
     dashboardBody(theme = shinytheme('flatly'),
                   tabItems(
@@ -69,24 +70,48 @@ dashboardPage(
                                   sidebarPanel(
                                       h4('Select variables to plot:'),
                                       selectInput('type','Type of Graph:', choices = c('Scatter','Histogram','Line','Tile')),
+                                      conditionalPanel("(input.stat_lvl=='Team Stats' & input.n_season == 'Multiple Seasons' & input.splt_season) | input.stat_lvl=='Player Stats'",
+                                                       uiOutput('group')),
                                       uiOutput('x_var'),
                                       conditionalPanel("input.type != 'Histogram'",
                                                        uiOutput('y_var'),
                                                        uiOutput('color_var')),
-                                      conditionalPanel("(input.stat_lvl=='Team Stats' & input.n_season = 'Multiple Seasons' & input.splt_season) | input.stat_lvl=='Player Stats'",
-                                          uiOutput('group'),
-                                          selectInput('funcx','Apply to function to X:', choices = c('Mean','Sum','Min','Max','Count'))),
+                                      conditionalPanel("((input.stat_lvl=='Team Stats' & input.n_season == 'Multiple Seasons' & input.splt_season) | input.stat_lvl=='Player Stats') & input.group != 'None'",
+                                                       uiOutput('funcx'),
                                       conditionalPanel("input.type != 'Histogram'",
-                                                       selectInput('funcy','Apply to function to Y:', choices = c('Mean','Sum','Min','Max','Count')),
-                                                       selectInput('funcc','Apply to function to Color:', choices = c('Mean','Sum','Min','Max','Count'))),
+                                                       uiOutput('funcy'),
+                                                       uiOutput('funcc'))),
+                                      conditionalPanel("input.type == 'Scatter'",
+                                                       checkboxInput('label_tf', 'Add Labels', value = F),
+                                                       conditionalPanel('input.label_tf', uiOutput('labels')),
+                                                       checkboxInput('smooth', 'Add Trend', value = F),
+                                                       conditionalPanel('input.smooth', uiOutput('smooth_val'))),
+                                                       
                                       div(actionButton("graph_submit", "Submit", class = "btn-primary"), align = 'center')
                                   ),
                                   mainPanel(
-                                      plotlyOutput('graph')
+                                      plotlyOutput('graph'),
+                                      conditionalPanel("input.type=='Histogram'", div(sliderInput('bins','Number of bins',min=1, max = 50, value = 30, step=1),align = 'center'))
                                   )
                               )
+                      ),
+                      tabItem('pca_tab',
+                              fluidPage(
+                                  sidebarLayout(
+                                      sidebarPanel(
+                                          h4('Configure PCA'),
+                                          uiOutput('pca_var'),
+                                          uiOutput('pca_label')
+                                      ),
+                                      mainPanel(
+                                          plotlyOutput('pca_graph'),
+                                          plotlyOutput('loadings_graph')
+                                      )
+                                  )
+                              )
+                              
                       )
                   )
     )
-    
+
 )

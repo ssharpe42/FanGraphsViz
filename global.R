@@ -1,17 +1,21 @@
-setwd("~/Desktop/Daily Fantasy/R Leaderboard")
+#setwd("~/GitHub/FanGraphsViz")
 library(dplyr)
+library(tidyr)
 library(rvest)
 library(stringr)
 library(lubridate)
+library(RColorBrewer)
 library(DT)
 library(shiny)
 library(ggthemes)
+library(ggfortify)
 library(scales)
 library(ggplot2)
 library(shinythemes)
 library(shinydashboard)
 library(shinyjs)
 library(plotly)
+library(ggrepel)
 options(stringsAsFactors = F)
 
 bat_stats = read.csv('data/bat_stats.csv') %>% arrange(ID)
@@ -155,6 +159,9 @@ scrape_data = function(url){
     names(df) = gsub('\\%','perc',names(df))
     names(df) = gsub('\\+','plus',names(df))
     names(df) = gsub('\\-','minus',names(df))
+    #Set seasons as factor
+    if('Season' %in% names(df)) df$Season = as.Date(paste0(df$Season,'-01-01'))
+    
     return(df)
     
 }
