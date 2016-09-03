@@ -88,12 +88,13 @@ shinyServer( function(input, output, session) {
                 updateSliderInput(session, 'age',value = c(14,58))
                 updateCheckboxInput(session, 'splt_season',value=F)
                 updateCheckboxInput(session, 'rookies', value = F)
-                disable('age'); disable('splt_season');disable('rookies');
-            }else{
-                enable('age'); enable('splt_season');enable('rookies');
             }
-        } 
+            toggleState('splt_season',(input$split=='Full Season' & input$stat_lvl !='League Stats' & input$n_season=='Multiple Seasons'))
+            toggleState('age',(input$split=='Full Season' & input$stat_lvl !='League Stats'))
+            toggleState('rookies',(input$split=='Full Season' & input$stat_lvl !='League Stats'))
+        }
     })
+    
     observeEvent(input$submit,{
         withProgress(message='Scraping FanGraphs data...', value= 0,{
             if(input$split=='Full Season'){
@@ -133,7 +134,7 @@ shinyServer( function(input, output, session) {
     })
     
     ###########  Vizualizations ###############
-    graph_var = reactiveValues()
+    graph_var = reactiveValues(pca_label_size = 2)
     
     output$x_var = renderUI({
         if(is.null(values$data)) choices = 'No Data'
@@ -280,20 +281,35 @@ shinyServer( function(input, output, session) {
     output$pca_label = renderUI({
         checkboxInput('pca_label','PCA Labels', value = F)
     })
+
+    observeEvent(input$plus,{
+        graph_var$pca_label_size = graph_var$pca_label_size+.2
+    })
+    observeEvent(input$minus,{
+        graph_var$pca_label_size = graph_var$pca_label_size-.2
+        print(graph_var$pca_label_size)
+    })
+    label_size <-reactive({ graph_var$pca_label_size})
     
     output$pca_graph = renderPlotly({
         if(length(input$pca_var)<2) return()
         data = values$data
-        if(input$stat_lvl=='Player Stats') row.names(data) = data$Name
-        else if(input$stat_lvl=='Team Stats') row.names(data) = data$Team
+        if(input$stat_lvl=='Player Stats'){
+            print(input$n_season=='Multiple Seasons' & input$splt_season)
+            if(input$n_season=='Multiple Seasons' & input$splt_season) row.names(data) = with(data, paste(Name, year(Season)))
+            else row.names(data) = data$Name
+        } 
+        else if(input$stat_lvl=='Team Stats'){
+            if(input$n_season=='Multiple Seasons' & input$splt_season) row.names(data) = with(data, paste(Team, year(Season)))
+            else row.names(data) = data$Team
+        }
         else row.names(data) = year(data$Season)
-        
         if(input$pca_label) {
-            p <- autoplot(prcomp(values$data[,input$pca_var]), data = data, label.size =2,
+            p <- autoplot(prcomp(values$data[,input$pca_var]), data = data, label.size =label_size(),
                           loadings = TRUE, loadings.colour = 'red', label =T, shape=F,
                           loadings.label = TRUE, loadings.label.size = 3)
         }else{
-            p <- autoplot(prcomp(values$data[,input$pca_var]), data = data, label.size =2,
+            p <- autoplot(prcomp(values$data[,input$pca_var]), data = data,
                           loadings = TRUE, loadings.colour = 'red', label =F, shape=T,
                           loadings.label = TRUE, loadings.label.size = 3)
         }

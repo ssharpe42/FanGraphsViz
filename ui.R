@@ -98,7 +98,13 @@ dashboardPage(
                                       sidebarPanel(
                                           h4('Configure PCA'),
                                           uiOutput('pca_var'),
-                                          uiOutput('pca_label')
+                                          uiOutput('pca_label'),
+                                          conditionalPanel("input.pca_label",
+                                              div(
+                                                  actionButton('plus','Increase Label Size', icon = icon('plus-square-o')),
+                                                  actionButton('minus','Decrease Label Size', icon = icon('minus-square-o'))
+                                              )
+                                          )
                                       ),
                                       mainPanel(
                                           plotlyOutput('pca_graph'),

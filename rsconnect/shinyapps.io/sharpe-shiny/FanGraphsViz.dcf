@@ -1,0 +1,7 @@
+name: FanGraphsViz
+account: sharpe-shiny
+server: shinyapps.io
+appId: 123626
+bundleId: 548321
+url: https://sharpe-shiny.shinyapps.io/FanGraphsViz/
+when: 1472924480.40657
