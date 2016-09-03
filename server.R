@@ -47,6 +47,7 @@ shinyServer( function(input, output, session) {
                        'Fielding' = 'Min Inn:')
         selectInput('qual',label, choices = qualified_list, selected = 'Qualified')
     })
+    #fields depend on split
     output$fields = renderUI({
         if(is.null(input$split)) choices = default = 'AB'
         else if(input$split=='Full Season'){
@@ -81,7 +82,7 @@ shinyServer( function(input, output, session) {
         }
         
     })
-    #Disable some options if not full season
+    #Disable some options if based on splits and multiple seasons
     observe({ 
         if(!is.null(input$split)){
             if(input$split!='Full Season' | input$stat_lvl =='League Stats'){
@@ -95,6 +96,7 @@ shinyServer( function(input, output, session) {
         }
     })
     
+    #scrape data on submit
     observeEvent(input$submit,{
         withProgress(message='Scraping FanGraphs data...', value= 0,{
             if(input$split=='Full Season'){
@@ -135,17 +137,19 @@ shinyServer( function(input, output, session) {
     
     ###########  Vizualizations ###############
     graph_var = reactiveValues(pca_label_size = 2)
-    
+    #pick x variable
     output$x_var = renderUI({
         if(is.null(values$data)) choices = 'No Data'
         else choices = values$cols
         selectInput('x_var','X-Variable', choices = choices,selected = choices[values$numeric][1])
     })
+    #pick y variable
     output$y_var = renderUI({
         if(is.null(values$data)) choices = 'No Data'
         else choices = values$cols
         selectInput('y_var','Y-Variable', choices = choices, selected = choices[values$numeric][1])
     })
+    #pick grouping variable
     output$group = renderUI({
         if(is.null(values$data)) choices = 'No Data'
         else if(input$stat_lvl=='Player Stats'){
@@ -159,26 +163,31 @@ shinyServer( function(input, output, session) {
         }
         selectInput('group','Group Variable', choices = choices,selected = 'None')
     })
+    #pick color var
     output$color_var = renderUI({
         if(is.null(values$data)) choices = 'No Data'
         else choices = c('None',values$cols)
         selectInput('color_var','Color Variable', choices = choices, selected = 'None')
     })
+    #function applied to x variable
     output$funcx = renderUI({
         if(grepl(input$x_var,input$group)) choices = 'None'
         else choices = c('Mean','Sum','Min','Max','var','sd')
         selectInput('funcx','Apply to function to X:', choices = choices,selected = choices[1])
     }) 
+    #function applied to y variable
     output$funcy = renderUI({
         if(grepl(input$y_var,input$group))choices = 'None'
         else choices = c('Mean','Sum','Min','Max','var','sd')
         selectInput('funcy','Apply to function to Y:', choices =choices, selected = choices[1])
     }) 
+    #function applied to color variable
     output$funcc = renderUI({
         if(grepl(input$y_var,input$group)) choices = 'None'
         else choices = c('Mean','Sum','Min','Max','var','sd')
         selectInput('funcc','Apply to function to Color:', choices =choices,selected = choices[1])
     })
+    #label points
     output$labels = renderUI({
         if(!input$label_tf) return()
         else if(input$group=='None') choices = values$cols
@@ -186,11 +195,12 @@ shinyServer( function(input, output, session) {
         else choices = c(str_split(input$group,',')[[1]],input$x_var, input$y_var)
         selectInput('labels','Choose Labels', choices =choices)
     }) 
+    #polynomial smoothing line
     output$smooth_val = renderUI({
         if(!input$smooth) return()
         else return(selectInput('smooth_val','Choose Degree:', choices =1:4))
     }) 
-
+    #buffer between setting variables and submitting
     set_graph_var = function(x, y, color, group, funcx, funcy, funcc, label_tf, labels, type, smooth,smooth_val){
        graph_var$x = x
        graph_var$y = y
@@ -210,15 +220,17 @@ shinyServer( function(input, output, session) {
        }
     }
     
+    #update graph variables with submit
     observeEvent(input$graph_submit, { set_graph_var(input$x_var, input$y_var, input$color_var, input$group, 
                                                      input$funcx, input$funcy, input$funcc, input$label_tf, 
                                                      input$labels, input$type,input$smooth, input$smooth_val) })
-
+    #reactive function to get data
     plot_data <- reactive({
 
         if(graph_var$group!='None'){
             if(graph_var$group == 'Season,Team') data = group_by(values$data, Season, Team) 
             else data = group_by_(values$data,graph_var$group) 
+            #if there is a color variable, include in grouping
             if(!is.null(graph_var$color)){
                 data = data %>%
                     summarise_(V1=paste0(graph_var$funcx,'(',graph_var$x,')'),
@@ -226,7 +238,7 @@ shinyServer( function(input, output, session) {
                                V3=paste0(graph_var$funcc,'(',graph_var$color,')')
                                ) %>% ungroup
                 names(data) = c(str_split(graph_var$group,',')[[1]], graph_var$x, graph_var$y, graph_var$color)
-            }else{
+            }else{ #no color variable
                 data = data %>%
                       summarise_(V1=paste0(graph_var$funcx,'(',graph_var$x,')'),
                                V2=paste0(graph_var$funcy,'(',graph_var$y,')')
@@ -243,8 +255,9 @@ shinyServer( function(input, output, session) {
     output$graph = renderPlotly({
         if(is.null(values$data) || is.null(graph_var$x)) return()
         else{
+            #get data
             p <-ggplot(plot_data())  
-            
+            #graph types
             if(graph_var$type=='Scatter'){
                 if(graph_var$label_tf){
                     p <- p + geom_text(aes_string(x = graph_var$x, y = graph_var$y, colour=graph_var$color, label=graph_var$labels))
@@ -273,37 +286,44 @@ shinyServer( function(input, output, session) {
             ggplotly(p+ theme_fivethirtyeight() ) %>% layout(autosize=T)
         }
     })
-    
+    #pick variables considered in pca
     output$pca_var = renderUI({
         selectizeInput('pca_var','Select variables for PCA',
                        choices = values$cols[values$numeric], multiple =T, selected =  values$cols[values$numeric])
     })
+    #labels checkbox
     output$pca_label = renderUI({
         checkboxInput('pca_label','PCA Labels', value = F)
     })
-
+    #increase pca label size
     observeEvent(input$plus,{
         graph_var$pca_label_size = graph_var$pca_label_size+.2
     })
+    #decrease pca label size
     observeEvent(input$minus,{
         graph_var$pca_label_size = graph_var$pca_label_size-.2
-        print(graph_var$pca_label_size)
     })
+    #reactive pca label size
     label_size <-reactive({ graph_var$pca_label_size})
     
     output$pca_graph = renderPlotly({
+        #if only one dimension return null
         if(length(input$pca_var)<2) return()
         data = values$data
+        #row names as players for pca labels
         if(input$stat_lvl=='Player Stats'){
             print(input$n_season=='Multiple Seasons' & input$splt_season)
             if(input$n_season=='Multiple Seasons' & input$splt_season) row.names(data) = with(data, paste(Name, year(Season)))
             else row.names(data) = data$Name
         } 
+        #row names as teams for pca labels
         else if(input$stat_lvl=='Team Stats'){
             if(input$n_season=='Multiple Seasons' & input$splt_season) row.names(data) = with(data, paste(Team, year(Season)))
             else row.names(data) = data$Team
         }
+        #row names as season for pca lablesx
         else row.names(data) = year(data$Season)
+        #graph with labels if checkbox is checked
         if(input$pca_label) {
             p <- autoplot(prcomp(values$data[,input$pca_var]), data = data, label.size =label_size(),
                           loadings = TRUE, loadings.colour = 'red', label =T, shape=F,
@@ -317,9 +337,12 @@ shinyServer( function(input, output, session) {
                      ggtitle('PCA'))
     })
     
+    #Tile graph loadings
     output$loadings_graph = renderPlotly({
         if(length(input$pca_var)<2) return()
+        #get loadings
         df = prcomp(values$data[,input$pca_var])$rotation %>% as.data.frame()
+        #order by PC 
         df = mutate(df, Variable = row.names(df))%>%
             gather(Component, Value,-Variable) %>%
             mutate(PCnum = as.numeric(gsub('[[:alpha:]]','',Component))) %>%
