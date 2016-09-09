@@ -39,7 +39,7 @@ splits_for_small_stats = c('vs L', 'vs R', 'Home', 'Away', 'Grounders', 'Flies',
                            'Batting 6th', 'Batting 7th', 'Batting 8th', 'Batting 9th', 'vs L as L', 'vs R as L', 'vs L as R', 'vs R as R')
 
 position_bat= c('All','P','C','1B','2B','SS','3B','RF','CF','LF','OF','NP')
-position_pit= c('All'='all','Starters'='sta','Relievers'='rel')
+position_pit= c('All'='pit','Starters'='sta','Relievers'='rel')
 position_fld = c('All','P','C','1B','2B','SS','3B','RF','CF','LF','OF')
 
 ages = 14:58
@@ -74,14 +74,13 @@ get_url = function(pos, stat, lg, qual, fields, season1, split,
                    season2, splt_season, rookies, team, split_team,
                    lg_stats, team_stats, active, age, stat_df, split_df, team_df){
     
-    #print(pos);print(stat);print(lg);print(qual);print(fields)
+    print(pos);print(stat);
     
     if(stat!='Pitching'){
         pos = tolower(pos)
         stat = ifelse(stat=='Batting','bat','fld')
-    }
-    else{
-        stat = switch(pos, 'All'='all','Starters'='sta','Relievers'='rel')
+    }else{
+        stat = pos
         pos = 'all'
     }
     
@@ -134,6 +133,7 @@ get_url = function(pos, stat, lg, qual, fields, season1, split,
                  "&rost=", active,
                  "&age=",age, 
                  "&filter=&players=0&page=1_10000")
+    print(url)
     return(url)
 }
 
@@ -149,12 +149,13 @@ scrape_data = function(url){
     #name columns
     names(df) = cols
     row.names(df)=1:nrow(df)
+    complete_row = df[complete.cases(df),][1,]
     #percent columns
-    perc_cols = which(grepl('%',cols))
+    perc_cols = which(grepl('%',complete_row))
     #make percent into decimal
     df[, perc_cols] = lapply(df[,perc_cols], function(x) as.numeric(gsub(' %','',x))/100)
     #numeric columns as numeric
-    df[, grepl('[[:digit:]]',df[1,])] = lapply(df[,grepl('[[:digit:]]',df[1,])], as.numeric)
+    df[, grepl('[[:digit:]]',complete_row)] = lapply(df[,grepl('[[:digit:]]',complete_row)], as.numeric)
     #take out punct from names
     names(df) = gsub('\\%','perc',names(df))
     names(df) = gsub('\\+','plus',names(df))

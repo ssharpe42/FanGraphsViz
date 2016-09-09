@@ -126,7 +126,7 @@ shinyServer( function(input, output, session) {
             values$numeric = which(sapply(values$data, class)=='numeric')
             #values$scaled = scale(values$data[,values$numeric])
             #values$pca = prcomp(values$data[,values$numeric])
-            #test<<-values$data
+            test1<<-values$data
             #cols <<-values$cols
         })
     })
